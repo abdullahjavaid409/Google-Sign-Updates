@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "606315744906",
+    "project_id": "signupdate-82e68",
+    "storage_bucket": "signupdate-82e68.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:606315744906:android:3330e59d5abb64000ce773",
+        "android_client_info": {
+          "package_name": "com.example.google_sign_in_update"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCn7LTmva2QDVrCME_nYZry1aCNjOR8_Po"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
