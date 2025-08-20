@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -36,7 +37,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Google Sign Update'),
     );
   }
 }
@@ -60,19 +61,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -110,48 +98,83 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            ElevatedButton(
+              onPressed: _pressedGoogleSignIn,
+              child: Text("Google Sign In"),
+            ),
+            SizedBox(height: 100),
+            ElevatedButton(
+              onPressed: _pressSignOut,
+              child: Text("Google Sign Out"),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
-}
 
-Future<void> signInWithGoogle() async {
-  try {
-    debugPrint('[Google] Starting sign-in...');
+  void _pressedGoogleSignIn() async {
+    await AuthRepo().signInWithGoogle();
+  }
 
-    final googleSignIn = GoogleSignIn(scopes: ['email']);
-
-    final googleUser = await googleSignIn.signIn();
-    if (googleUser == null) {
-      debugPrint('[Google] Sign-in cancelled by user');
-      return;
-    }
-
-    debugPrint('[Google] User selected: ${googleUser.email}');
-    debugPrint('[Google] Name: ${googleUser.displayName}');
-    debugPrint('[Google] Avatar: ${googleUser.photoUrl}');
-
-    final googleAuth = await googleUser.authentication;
-    debugPrint('[Google] Access Token: ${googleAuth.accessToken}');
-    debugPrint('[Google] ID Token: ${googleAuth.idToken}');
-  } catch (e, stack) {
-    debugPrint('[Google] Error: $e $stack');
+  _pressSignOut() async {
+    await AuthRepo().signOut();
   }
 }
 
-Future<void> signOutGoogle() async {
-  await GoogleSignIn().signOut();
-  debugPrint('[Google] Signed out');
+class AuthRepo {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  GoogleSignIn _google() => GoogleSignIn(scopes: ['email']);
+
+  Future<User?> signInWithGoogle() async {
+    try {
+      debugPrint('[Auth] 🔵 Google sign-in started');
+
+      final googleAccount = await _google().signIn();
+      if (googleAccount == null) {
+        debugPrint('[Auth] 🟡 Google sign-in cancelled');
+        return null;
+      }
+      debugPrint('[Auth] ✅ Google account: ${googleAccount.email}');
+
+      final googleTokens = await googleAccount.authentication;
+      if (googleTokens.accessToken == null) {
+        debugPrint('[Auth] 🔴 Google idToken missing');
+        throw Exception('google_id_token_missing');
+      }
+
+      debugPrint('[Auth] 🔵 Firebase credential build');
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleTokens.idToken,
+        accessToken: googleTokens.accessToken,
+      );
+
+      debugPrint('[Auth] 🔵 Firebase sign-in');
+      final result = await _auth.signInWithCredential(credential);
+      final user = result.user;
+      if (user == null) {
+        debugPrint('[Auth] 🔴 Firebase user null');
+        throw Exception('firebase_user_null');
+      }
+
+      debugPrint('[Auth] ✅ Logged in UID: ${user.uid}');
+      return user;
+    } catch (err, trace) {
+      debugPrint('[Auth] 🔴 Error: $err');
+      debugPrint('[Auth] 🔴 Stack: $trace');
+      rethrow;
+    }
+  }
+
+  Future<void> signOut() async {
+    try {
+      debugPrint('[Auth] 🔵 Sign-out started');
+      await _google().signOut();
+      await _auth.signOut();
+      debugPrint('[Auth] ✅ Sign-out completed');
+    } catch (err) {
+      debugPrint('[Auth] 🔴 Sign-out failed: $err');
+    }
+  }
 }
