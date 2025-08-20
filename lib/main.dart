@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'firebase_options.dart';
 
@@ -124,4 +125,33 @@ class _MyHomePageState extends State<MyHomePage> {
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+}
+
+Future<void> signInWithGoogle() async {
+  try {
+    debugPrint('[Google] Starting sign-in...');
+
+    final googleSignIn = GoogleSignIn(scopes: ['email']);
+
+    final googleUser = await googleSignIn.signIn();
+    if (googleUser == null) {
+      debugPrint('[Google] Sign-in cancelled by user');
+      return;
+    }
+
+    debugPrint('[Google] User selected: ${googleUser.email}');
+    debugPrint('[Google] Name: ${googleUser.displayName}');
+    debugPrint('[Google] Avatar: ${googleUser.photoUrl}');
+
+    final googleAuth = await googleUser.authentication;
+    debugPrint('[Google] Access Token: ${googleAuth.accessToken}');
+    debugPrint('[Google] ID Token: ${googleAuth.idToken}');
+  } catch (e, stack) {
+    debugPrint('[Google] Error: $e $stack');
+  }
+}
+
+Future<void> signOutGoogle() async {
+  await GoogleSignIn().signOut();
+  debugPrint('[Google] Signed out');
 }
